@@ -1,19 +1,41 @@
 import { Router } from "express";
 import { Op } from "sequelize";
+import { Calendar } from "../models/Calendar.js";
 import { Context } from "../models/Context.js";
 import { Task } from "../models/Task.js";
 import type { RecurringRule } from "../models/Task.js";
+import { requireAuth } from "../middleware/auth.js";
 
 export const tasksRouter = Router();
+tasksRouter.use(requireAuth);
+
+function getUserId(req: { userId?: number }): number {
+  const id = req.userId;
+  if (id == null) throw new Error("unauthorized");
+  return id;
+}
+
+async function getUserCalendarIds(userId: number): Promise<number[]> {
+  const list = await Calendar.findAll({ where: { userId }, attributes: ["id"] });
+  return list.map((c) => c.id);
+}
 
 tasksRouter.get("/", async (req, res) => {
+  const userId = getUserId(req);
+  const calendarIds = await getUserCalendarIds(userId);
+  if (calendarIds.length === 0) {
+    res.json([]);
+    return;
+  }
   const calendarId = req.query.calendarId != null ? Number(req.query.calendarId) : undefined;
   const from = req.query.from as string | undefined;
   const to = req.query.to as string | undefined;
   const someday = req.query.someday === "true";
 
-  const where: Record<string, unknown> = {};
-  if (calendarId != null && !Number.isNaN(calendarId)) where.calendarId = calendarId;
+  const where: Record<string, unknown> = { calendarId: { [Op.in]: calendarIds } };
+  if (calendarId != null && !Number.isNaN(calendarId) && calendarIds.includes(calendarId)) {
+    where.calendarId = calendarId;
+  }
   if (someday) {
     where.date = null;
   } else if (from && to) {
@@ -33,6 +55,12 @@ tasksRouter.get("/", async (req, res) => {
 });
 
 tasksRouter.post("/", async (req, res) => {
+  const userId = getUserId(req);
+  const calendarIds = await getUserCalendarIds(userId);
+  if (calendarIds.length === 0) {
+    res.status(400).json({ error: "no calendar" });
+    return;
+  }
   const body = req.body as {
     calendarId?: number;
     contextId?: number | null;
@@ -45,11 +73,16 @@ tasksRouter.post("/", async (req, res) => {
     res.status(400).json({ error: "title required" });
     return;
   }
-  const calendarId = body.calendarId != null && !Number.isNaN(body.calendarId) ? body.calendarId : 1;
-  const contextId =
-    body.contextId != null && body.contextId !== "" && !Number.isNaN(Number(body.contextId))
-      ? Number(body.contextId)
-      : null;
+  const calendarId =
+    body.calendarId != null && !Number.isNaN(body.calendarId) && calendarIds.includes(body.calendarId)
+      ? body.calendarId
+      : calendarIds[0]!;
+  let contextId: number | null = null;
+  if (body.contextId != null && body.contextId !== "" && !Number.isNaN(Number(body.contextId))) {
+    const cid = Number(body.contextId);
+    const ctx = await Context.findOne({ where: { id: cid, userId } });
+    if (ctx) contextId = cid;
+  }
   const maxOrder = await Task.max("orderInDay", {
     where: { calendarId, date: body.date ?? null },
   });
@@ -69,12 +102,15 @@ tasksRouter.post("/", async (req, res) => {
 });
 
 tasksRouter.get("/:id", async (req, res) => {
+  const userId = getUserId(req);
+  const calendarIds = await getUserCalendarIds(userId);
   const id = Number(req.params.id);
   if (Number.isNaN(id)) {
     res.status(400).json({ error: "invalid id" });
     return;
   }
-  const task = await Task.findByPk(id, {
+  const task = await Task.findOne({
+    where: { id, calendarId: { [Op.in]: calendarIds } },
     include: [{ model: Context, as: "Context", required: false }],
   });
   if (!task) {
@@ -85,12 +121,14 @@ tasksRouter.get("/:id", async (req, res) => {
 });
 
 tasksRouter.patch("/:id", async (req, res) => {
+  const userId = getUserId(req);
+  const calendarIds = await getUserCalendarIds(userId);
   const id = Number(req.params.id);
   if (Number.isNaN(id)) {
     res.status(400).json({ error: "invalid id" });
     return;
   }
-  const task = await Task.findByPk(id);
+  const task = await Task.findOne({ where: { id, calendarId: { [Op.in]: calendarIds } } });
   if (!task) {
     res.status(404).json({ error: "not found" });
     return;
@@ -108,7 +146,16 @@ tasksRouter.patch("/:id", async (req, res) => {
   if (body.notes !== undefined) task.notes = body.notes;
   if (body.date !== undefined) task.date = body.date;
   if (typeof body.completed === "boolean") task.completed = body.completed;
-  if (body.contextId !== undefined) task.contextId = body.contextId;
+  if (body.contextId !== undefined) {
+    if (body.contextId === null) {
+      task.contextId = null;
+    } else {
+      const ctx = await Context.findOne({
+        where: { id: body.contextId, userId },
+      });
+      if (ctx) task.contextId = body.contextId;
+    }
+  }
   if (typeof body.orderInDay === "number") task.orderInDay = body.orderInDay;
   if (body.recurringRule !== undefined) task.recurringRule = body.recurringRule;
   await task.save();
@@ -119,12 +166,16 @@ tasksRouter.patch("/:id", async (req, res) => {
 });
 
 tasksRouter.delete("/:id", async (req, res) => {
+  const userId = getUserId(req);
+  const calendarIds = await getUserCalendarIds(userId);
   const id = Number(req.params.id);
   if (Number.isNaN(id)) {
     res.status(400).json({ error: "invalid id" });
     return;
   }
-  const n = await Task.destroy({ where: { id } });
+  const n = await Task.destroy({
+    where: { id, calendarId: { [Op.in]: calendarIds } },
+  });
   if (n === 0) {
     res.status(404).json({ error: "not found" });
     return;

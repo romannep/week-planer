@@ -1,9 +1,10 @@
-import { formatDayShort } from "../utils/date";
-import type { Calendar } from "../types";
+import type { Calendar, User } from "../types";
 
 type Theme = "default" | "blue" | "minimal";
 
 interface HeaderProps {
+  user: User;
+  onLogout: () => void;
   viewMode: "week" | "day";
   year: number;
   week: number;
@@ -19,11 +20,12 @@ interface HeaderProps {
   calendars: Calendar[];
   activeCalendarId: number;
   onCalendarChange: (id: number) => void;
-  onAddTask: () => void;
   onOpenContexts: () => void;
 }
 
 export function Header({
+  user,
+  onLogout,
   viewMode,
   year,
   week,
@@ -39,7 +41,6 @@ export function Header({
   calendars,
   activeCalendarId,
   onCalendarChange,
-  onAddTask,
   onOpenContexts,
 }: HeaderProps) {
   const weekLabel = `Неделя ${week}, ${year}`;
@@ -60,52 +61,53 @@ export function Header({
         boxShadow: "var(--shadow)",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         {viewMode === "week" ? (
-          <>
-            <button
-              type="button"
-              onClick={onPrevWeek}
-              aria-label="Предыдущая неделя"
-              style={btnStyle}
-            >
-              ‹
-            </button>
-            <button
-              type="button"
-              onClick={onNextWeek}
-              aria-label="Следующая неделя"
-              style={btnStyle}
-            >
-              ›
-            </button>
-          </>
+          <button
+            type="button"
+            onClick={onPrevWeek}
+            aria-label="Предыдущая неделя"
+            style={navBtnStyle}
+          >
+            ‹
+          </button>
         ) : (
-          <>
-            <button
-              type="button"
-              onClick={onPrevDay}
-              aria-label="Предыдущий день"
-              style={btnStyle}
-            >
-              ‹
-            </button>
-            <button
-              type="button"
-              onClick={onNextDay}
-              aria-label="Следующий день"
-              style={btnStyle}
-            >
-              ›
-            </button>
-          </>
+          <button
+            type="button"
+            onClick={onPrevDay}
+            aria-label="Предыдущий день"
+            style={navBtnStyle}
+          >
+            ‹
+          </button>
         )}
-        <button type="button" onClick={onToday} style={{ ...btnStyle, fontWeight: 500 }}>
-          Сегодня
-        </button>
-        <span style={{ fontFamily: "var(--font-serif)", fontSize: "1.1rem", marginLeft: 4 }}>
-          {navLabel}
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 200, justifyContent: "center" }}>
+          <button type="button" onClick={onToday} style={{ ...btnStyle, fontWeight: 500 }}>
+            Сегодня
+          </button>
+          <span style={{ fontFamily: "var(--font-serif)", fontSize: "1.1rem" }}>
+            {navLabel}
+          </span>
+        </div>
+        {viewMode === "week" ? (
+          <button
+            type="button"
+            onClick={onNextWeek}
+            aria-label="Следующая неделя"
+            style={navBtnStyle}
+          >
+            ›
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={onNextDay}
+            aria-label="Следующий день"
+            style={navBtnStyle}
+          >
+            ›
+          </button>
+        )}
       </div>
       <button
         type="button"
@@ -145,20 +147,12 @@ export function Header({
         <button type="button" onClick={onOpenContexts} style={{ ...btnStyle, padding: "8px 14px" }}>
           Контексты
         </button>
-        <button
-          type="button"
-          onClick={onAddTask}
-          style={{
-            ...btnStyle,
-            background: "var(--accent)",
-            color: "white",
-            padding: "8px 14px",
-          }}
-        >
-          + Задача
-        </button>
       </div>
-      <div style={{ marginLeft: "auto", display: "flex", gap: 4 }}>
+      <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ fontSize: 14, color: "var(--text-muted)" }}>{user.login}</span>
+        <button type="button" onClick={onLogout} style={{ ...btnStyle, padding: "6px 12px", fontSize: 14 }}>
+          Выйти
+        </button>
         {(["default", "blue", "minimal"] as const).map((t) => (
           <button
             key={t}
@@ -188,4 +182,11 @@ const btnStyle: React.CSSProperties = {
   padding: 6,
   borderRadius: "var(--radius)",
   fontSize: 18,
+};
+
+const navBtnStyle: React.CSSProperties = {
+  ...btnStyle,
+  padding: "14px 20px",
+  fontSize: 28,
+  minWidth: 52,
 };

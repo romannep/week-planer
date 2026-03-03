@@ -1,20 +1,42 @@
 import { Router } from "express";
 import { Calendar } from "../models/Calendar.js";
+import { requireAuth } from "../middleware/auth.js";
 
 export const calendarsRouter = Router();
+calendarsRouter.use(requireAuth);
 
-calendarsRouter.get("/", async (_req, res) => {
-  const list = await Calendar.findAll({ order: [["id", "ASC"]] });
+function getUserId(req: { userId?: number }): number {
+  const id = req.userId;
+  if (id == null) throw new Error("unauthorized");
+  return id;
+}
+
+calendarsRouter.get("/", async (req, res) => {
+  const userId = getUserId(req);
+  let list = await Calendar.findAll({
+    where: { userId },
+    order: [["id", "ASC"]],
+  });
+  if (list.length === 0) {
+    const created = await Calendar.create({
+      userId,
+      name: "Мой календарь",
+      color: "#4A90D9",
+    });
+    list = [created];
+  }
   res.json(list);
 });
 
 calendarsRouter.post("/", async (req, res) => {
+  const userId = getUserId(req);
   const { name, color } = req.body as { name?: string; color?: string };
   if (!name || typeof name !== "string") {
     res.status(400).json({ error: "name required" });
     return;
   }
   const calendar = await Calendar.create({
+    userId,
     name: name.trim(),
     color: typeof color === "string" ? color : "#4A90D9",
   });
@@ -22,12 +44,13 @@ calendarsRouter.post("/", async (req, res) => {
 });
 
 calendarsRouter.get("/:id", async (req, res) => {
+  const userId = getUserId(req);
   const id = Number(req.params.id);
   if (Number.isNaN(id)) {
     res.status(400).json({ error: "invalid id" });
     return;
   }
-  const calendar = await Calendar.findByPk(id);
+  const calendar = await Calendar.findOne({ where: { id, userId } });
   if (!calendar) {
     res.status(404).json({ error: "not found" });
     return;
@@ -36,12 +59,13 @@ calendarsRouter.get("/:id", async (req, res) => {
 });
 
 calendarsRouter.patch("/:id", async (req, res) => {
+  const userId = getUserId(req);
   const id = Number(req.params.id);
   if (Number.isNaN(id)) {
     res.status(400).json({ error: "invalid id" });
     return;
   }
-  const calendar = await Calendar.findByPk(id);
+  const calendar = await Calendar.findOne({ where: { id, userId } });
   if (!calendar) {
     res.status(404).json({ error: "not found" });
     return;
@@ -54,12 +78,13 @@ calendarsRouter.patch("/:id", async (req, res) => {
 });
 
 calendarsRouter.delete("/:id", async (req, res) => {
+  const userId = getUserId(req);
   const id = Number(req.params.id);
   if (Number.isNaN(id)) {
     res.status(400).json({ error: "invalid id" });
     return;
   }
-  const n = await Calendar.destroy({ where: { id } });
+  const n = await Calendar.destroy({ where: { id, userId } });
   if (n === 0) {
     res.status(404).json({ error: "not found" });
     return;

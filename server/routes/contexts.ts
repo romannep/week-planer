@@ -1,14 +1,27 @@
 import { Router } from "express";
 import { Context } from "../models/Context.js";
+import { requireAuth } from "../middleware/auth.js";
 
 export const contextsRouter = Router();
+contextsRouter.use(requireAuth);
 
-contextsRouter.get("/", async (_req, res) => {
-  const list = await Context.findAll({ order: [["id", "ASC"]] });
+function getUserId(req: { userId?: number }): number {
+  const id = req.userId;
+  if (id == null) throw new Error("unauthorized");
+  return id;
+}
+
+contextsRouter.get("/", async (req, res) => {
+  const userId = getUserId(req);
+  const list = await Context.findAll({
+    where: { userId },
+    order: [["id", "ASC"]],
+  });
   res.json(list);
 });
 
 contextsRouter.post("/", async (req, res) => {
+  const userId = getUserId(req);
   const { name, color } = req.body as { name?: string; color?: string };
   if (!name || typeof name !== "string") {
     res.status(400).json({ error: "name required" });
@@ -18,17 +31,22 @@ contextsRouter.post("/", async (req, res) => {
     res.status(400).json({ error: "color required" });
     return;
   }
-  const context = await Context.create({ name: name.trim(), color: color.trim() });
+  const context = await Context.create({
+    userId,
+    name: name.trim(),
+    color: color.trim(),
+  });
   res.status(201).json(context);
 });
 
 contextsRouter.get("/:id", async (req, res) => {
+  const userId = getUserId(req);
   const id = Number(req.params.id);
   if (Number.isNaN(id)) {
     res.status(400).json({ error: "invalid id" });
     return;
   }
-  const context = await Context.findByPk(id);
+  const context = await Context.findOne({ where: { id, userId } });
   if (!context) {
     res.status(404).json({ error: "not found" });
     return;
@@ -37,12 +55,13 @@ contextsRouter.get("/:id", async (req, res) => {
 });
 
 contextsRouter.patch("/:id", async (req, res) => {
+  const userId = getUserId(req);
   const id = Number(req.params.id);
   if (Number.isNaN(id)) {
     res.status(400).json({ error: "invalid id" });
     return;
   }
-  const context = await Context.findByPk(id);
+  const context = await Context.findOne({ where: { id, userId } });
   if (!context) {
     res.status(404).json({ error: "not found" });
     return;
@@ -55,12 +74,13 @@ contextsRouter.patch("/:id", async (req, res) => {
 });
 
 contextsRouter.delete("/:id", async (req, res) => {
+  const userId = getUserId(req);
   const id = Number(req.params.id);
   if (Number.isNaN(id)) {
     res.status(400).json({ error: "invalid id" });
     return;
   }
-  const n = await Context.destroy({ where: { id } });
+  const n = await Context.destroy({ where: { id, userId } });
   if (n === 0) {
     res.status(404).json({ error: "not found" });
     return;

@@ -1,5 +1,10 @@
 export type RecurringRule = "none" | "daily" | "weekly" | "monthly" | "yearly";
 
+export interface User {
+  id: number;
+  login: string;
+}
+
 export interface Calendar {
   id: number;
   name: string;

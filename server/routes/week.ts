@@ -1,9 +1,23 @@
 import { Router } from "express";
 import { Op } from "sequelize";
+import { Calendar } from "../models/Calendar.js";
 import { Context } from "../models/Context.js";
 import { Task } from "../models/Task.js";
+import { requireAuth } from "../middleware/auth.js";
 
 export const weekRouter = Router();
+weekRouter.use(requireAuth);
+
+function getUserId(req: { userId?: number }): number {
+  const id = req.userId;
+  if (id == null) throw new Error("unauthorized");
+  return id;
+}
+
+async function getUserCalendarIds(userId: number): Promise<number[]> {
+  const list = await Calendar.findAll({ where: { userId }, attributes: ["id"] });
+  return list.map((c) => c.id);
+}
 
 function getWeekBounds(year: number, week: number): { monday: string; sunday: string } {
   const jan1 = new Date(year, 0, 1);
@@ -20,13 +34,22 @@ function getWeekBounds(year: number, week: number): { monday: string; sunday: st
 }
 
 weekRouter.get("/:year/:week", async (req, res) => {
+  const userId = getUserId(req);
+  const calendarIds = await getUserCalendarIds(userId);
+  if (calendarIds.length === 0) {
+    res.json({ monday: "", sunday: "", tasks: [] });
+    return;
+  }
   const year = Number(req.params.year);
   const week = Number(req.params.week);
   if (Number.isNaN(year) || Number.isNaN(week)) {
     res.status(400).json({ error: "invalid year or week" });
     return;
   }
-  const calendarId = req.query.calendarId != null ? Number(req.query.calendarId) : 1;
+  const calendarId =
+    req.query.calendarId != null && calendarIds.includes(Number(req.query.calendarId))
+      ? Number(req.query.calendarId)
+      : calendarIds[0]!;
   const { monday, sunday } = getWeekBounds(year, week);
   const tasks = await Task.findAll({
     where: {
@@ -44,7 +67,16 @@ weekRouter.get("/:year/:week", async (req, res) => {
 });
 
 weekRouter.get("/someday", async (req, res) => {
-  const calendarId = req.query.calendarId != null ? Number(req.query.calendarId) : 1;
+  const userId = getUserId(req);
+  const calendarIds = await getUserCalendarIds(userId);
+  if (calendarIds.length === 0) {
+    res.json([]);
+    return;
+  }
+  const calendarId =
+    req.query.calendarId != null && calendarIds.includes(Number(req.query.calendarId))
+      ? Number(req.query.calendarId)
+      : calendarIds[0]!;
   const tasks = await Task.findAll({
     where: { calendarId, date: null },
     include: [{ model: Context, as: "Context", required: false }],
@@ -54,12 +86,21 @@ weekRouter.get("/someday", async (req, res) => {
 });
 
 weekRouter.post("/roll", async (req, res) => {
+  const userId = getUserId(req);
+  const calendarIds = await getUserCalendarIds(userId);
+  if (calendarIds.length === 0) {
+    res.status(400).json({ error: "no calendar" });
+    return;
+  }
   const { fromDate, toDate } = req.body as { fromDate?: string; toDate?: string };
   if (!fromDate || !toDate) {
     res.status(400).json({ error: "fromDate and toDate required" });
     return;
   }
-  const calendarId = req.body.calendarId != null ? Number(req.body.calendarId) : 1;
+  const calendarId =
+    req.body.calendarId != null && calendarIds.includes(Number(req.body.calendarId))
+      ? Number(req.body.calendarId)
+      : calendarIds[0]!;
   const updated = await Task.update(
     { date: toDate },
     {

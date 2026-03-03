@@ -28,23 +28,25 @@ alwaysApply: true
 
 # Контекст проекта
 
-Приложение для планирования задач на неделю по аналогии с Tweek.
+Приложение для планирования задач на неделю по аналогии с Tweek. Многопользовательское: вход по логину и паролю, у каждого пользователя свой список календарей, контекстов и задач.
 
 Структура:
-- server/ — backend: Node.js, Express, Sequelize, SQLite. Точка входа server/index.ts. БД SQLite в server/data/weekplanner.sqlite. При первом запуске создаётся календарь по умолчанию "Мой календарь" если календарей нет.
-- client/ — frontend: React, TypeScript, Vite. Точка входа client/main.tsx. Сборка в client-dist/.
+- server/ — backend: Node.js, Express, Sequelize, SQLite. Точка входа server/index.ts. БД SQLite в server/data/weekplanner.sqlite. Сессии: JWT в cookie "session" (httpOnly), парсится middleware parseAuth; маршруты кроме /api/auth защищены requireAuth.
+- client/ — frontend: React, TypeScript, Vite. Точка входа client/main.tsx. Сборка в client-dist/. Запросы с credentials: "include". При 401 вызывается onAuthFailure и показывается экран входа.
 - index.html, vite.config.ts в корне. Прокси /api на localhost:3000 в dev.
 
 Модели (Sequelize):
-- Calendar: id, name, color, createdAt, updatedAt.
-- Context: id, name, color, createdAt, updatedAt. Цвет — один из палитры (как в выборе цвета задачи ранее).
-- Task: id, calendarId, contextId (nullable), title, notes (nullable), date (DATEONLY, nullable — null = "Когда-нибудь"), completed, orderInDay, recurringRule (none|daily|weekly|monthly|yearly), createdAt, updatedAt. Цвет задачи убран; цвет берётся из контекста (Context). Связь Task.belongsTo(Context).
+- User: id, login (unique), passwordHash, createdAt, updatedAt. Пароль хешируется bcrypt.
+- Calendar: id, userId, name, color, createdAt, updatedAt. Calendar.belongsTo(User). При первом заходе в список календарей у пользователя создаётся "Мой календарь" если пусто. При регистрации тоже создаётся один календарь по умолчанию.
+- Context: id, userId, name, color, createdAt, updatedAt. Context.belongsTo(User).
+- Task: id, calendarId, contextId (nullable), title, notes (nullable), date (DATEONLY, nullable — null = "Когда-нибудь"), completed, orderInDay, recurringRule (none|daily|weekly|monthly|yearly), createdAt, updatedAt. Цвет задачи из контекста. Связи Task.belongsTo(Calendar), Task.belongsTo(Context). Доступ к задачам только через календари текущего пользователя.
 
 API:
-- GET/POST /api/calendars, GET/PATCH/DELETE /api/calendars/:id.
-- GET/POST /api/contexts, GET/PATCH/DELETE /api/contexts/:id. Контекст: name, color (обязательно).
-- GET /api/tasks?calendarId=&from=&to=&someday=true. POST /api/tasks (body: contextId, title, …). GET/PATCH/DELETE /api/tasks/:id. Ответы задач включают вложенный Context (include).
-- GET /api/week/:year/:week?calendarId= — неделя, возвращает { monday, sunday, tasks } (tasks с Context). GET /api/week/someday?calendarId=. POST /api/week/roll — body { fromDate, toDate, calendarId }.
+- Auth (без requireAuth): POST /api/auth/register { login, password }, POST /api/auth/login { login, password }, POST /api/auth/logout, GET /api/auth/me. Cookie session выставляется при login/register.
+- GET/POST /api/calendars, GET/PATCH/DELETE /api/calendars/:id — все операции по userId текущего пользователя.
+- GET/POST /api/contexts, GET/PATCH/DELETE /api/contexts/:id — по userId.
+- GET /api/tasks?calendarId=&from=&to=&someday=true, POST /api/tasks (body: calendarId, contextId, title, …), GET/PATCH/DELETE /api/tasks/:id — calendarId и contextId должны принадлежать пользователю.
+- GET /api/week/:year/:week?calendarId=, GET /api/week/someday?calendarId=, POST /api/week/roll — по календарям пользователя.
 
 Фронт:
 - Недельный вид: 7 колонок (дни), каждая — список задач. Ниже блок "Когда-нибудь". Над колонками дней — строка фильтров по контекстам: кнопка "Все" и чипы контекстов (название в скруглённой рамке цвета контекста). При выборе контекста в колонках и в "Когда-нибудь" показываются только задачи этого контекста.
@@ -52,9 +54,11 @@ API:
 - Задачи: в модалке задачи выбор контекста (чипы: "Без контекста" + все контексты), не выбор цвета. В карточке задачи: контекст отображается чипом (название в скруглённой рамке цвета контекста), рамка/подсветка карточки по цвету контекста.
 - Drag-and-drop: перенос задач между днями и в "Когда-нибудь". DataTransfer application/x-weekplanner-task, значение id задачи.
 - Темы: default, blue, minimal — переключатель в шапке, localStorage weekplanner-theme.
-- Навигация по неделям: предыдущая/следующая, "Сегодня". Нумерация недель ISO.
+- Навигация по неделям: крупные кнопки ‹ и › по разные стороны от даты (слева — предыдущая неделя/день, по центру — "Сегодня" и подпись недели или дня, справа — следующая). Нумерация недель ISO.
+- В шапке нет кнопки "+ Задача"; новая задача создаётся через "+ Добавить" в колонке дня или "+ Добавить в «Когда-нибудь»" в блоке Когда-нибудь.
 - Один календарь по умолчанию; при нескольких — выбор в шапке.
+- Авторизация: экран входа/регистрации (client/components/LoginPage.tsx). После входа показывается приложение; в шапке отображается логин и кнопка "Выйти". Root (main.tsx) при загрузке вызывает api.auth.getMe(); при неудаче или отсутствии сессии показывается LoginPage.
 
-Зависимости: express, cors, sequelize, sqlite3; react, react-dom; vite, @vitejs/plugin-react, tsx, typescript, concurrently; типы @types/express, @types/cors, @types/node, @types/react, @types/react-dom.
+Зависимости: express, cors, cookie-parser, bcrypt, jsonwebtoken, sequelize, sqlite3; react, react-dom; vite, @vitejs/plugin-react, tsx, typescript, concurrently; типы @types/express, @types/cors, @types/cookie-parser, @types/bcrypt, @types/jsonwebtoken, @types/node, @types/react, @types/react-dom.
 Скрипты: npm run dev (сервер + клиент), dev:server (tsx watch server/index.ts), dev:client (vite), build (tsc -p server && vite build). Сервер слушает PORT или 3000. В production раздаёт статику из client-dist.
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "./api";
-import type { Calendar, Context, Task } from "./types";
+import type { Calendar, Context, Task, User } from "./types";
 import {
   addDaysToDateString,
   getWeekDays,
@@ -17,7 +17,12 @@ import { TaskModal } from "./components/TaskModal";
 
 type Theme = "default" | "blue" | "minimal";
 
-export function App() {
+interface AppProps {
+  user: User;
+  onLogout: () => void;
+}
+
+export function App({ user, onLogout }: AppProps) {
   const [theme, setTheme] = useState<Theme>(() => {
     const s = localStorage.getItem("weekplanner-theme");
     return (s === "blue" || s === "minimal" ? s : "default") as Theme;
@@ -259,6 +264,8 @@ export function App() {
   return (
     <>
       <Header
+        user={user}
+        onLogout={onLogout}
         viewMode={viewMode}
         year={year}
         week={week}
@@ -274,7 +281,6 @@ export function App() {
         calendars={calendars}
         activeCalendarId={activeCalendarId}
         onCalendarChange={setActiveCalendarId}
-        onAddTask={() => setCreatingForDate(null)}
         onOpenContexts={() => setContextsModalOpen(true)}
       />
       <main style={{ maxWidth: 1400, margin: "0 auto", padding: "0 16px 24px" }}>
