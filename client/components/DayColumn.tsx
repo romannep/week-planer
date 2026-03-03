@@ -89,6 +89,7 @@ export function DayColumn({
               if (draggedId !== task.id) onTaskMove(draggedId, index);
             }}
             dropTargetDate={dateStr}
+            showContextChip={false}
           />
         ))}
         <button

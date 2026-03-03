@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { Op } from "sequelize";
+import { Context } from "../models/Context.js";
 import { Task } from "../models/Task.js";
 import type { RecurringRule } from "../models/Task.js";
 
@@ -21,6 +22,7 @@ tasksRouter.get("/", async (req, res) => {
 
   const list = await Task.findAll({
     where,
+    include: [{ model: Context, as: "Context", required: false }],
     order: [
       ["date", "ASC"],
       ["orderInDay", "ASC"],
@@ -33,10 +35,10 @@ tasksRouter.get("/", async (req, res) => {
 tasksRouter.post("/", async (req, res) => {
   const body = req.body as {
     calendarId?: number;
+    contextId?: number | null;
     title?: string;
     notes?: string;
     date?: string | null;
-    color?: string | null;
     recurringRule?: RecurringRule;
   };
   if (!body.title || typeof body.title !== "string") {
@@ -44,19 +46,26 @@ tasksRouter.post("/", async (req, res) => {
     return;
   }
   const calendarId = body.calendarId != null && !Number.isNaN(body.calendarId) ? body.calendarId : 1;
+  const contextId =
+    body.contextId != null && body.contextId !== "" && !Number.isNaN(Number(body.contextId))
+      ? Number(body.contextId)
+      : null;
   const maxOrder = await Task.max("orderInDay", {
     where: { calendarId, date: body.date ?? null },
   });
   const task = await Task.create({
     calendarId,
+    contextId,
     title: body.title.trim(),
     notes: body.notes ?? null,
     date: body.date ?? null,
-    color: body.color ?? null,
     orderInDay: (Number(maxOrder) || 0) + 1,
     recurringRule: body.recurringRule ?? "none",
   });
-  res.status(201).json(task);
+  const withContext = await Task.findByPk(task.id, {
+    include: [{ model: Context, as: "Context", required: false }],
+  });
+  res.status(201).json(withContext ?? task);
 });
 
 tasksRouter.get("/:id", async (req, res) => {
@@ -65,7 +74,9 @@ tasksRouter.get("/:id", async (req, res) => {
     res.status(400).json({ error: "invalid id" });
     return;
   }
-  const task = await Task.findByPk(id);
+  const task = await Task.findByPk(id, {
+    include: [{ model: Context, as: "Context", required: false }],
+  });
   if (!task) {
     res.status(404).json({ error: "not found" });
     return;
@@ -89,7 +100,7 @@ tasksRouter.patch("/:id", async (req, res) => {
     notes: string | null;
     date: string | null;
     completed: boolean;
-    color: string | null;
+    contextId: number | null;
     orderInDay: number;
     recurringRule: RecurringRule;
   }>;
@@ -97,11 +108,14 @@ tasksRouter.patch("/:id", async (req, res) => {
   if (body.notes !== undefined) task.notes = body.notes;
   if (body.date !== undefined) task.date = body.date;
   if (typeof body.completed === "boolean") task.completed = body.completed;
-  if (body.color !== undefined) task.color = body.color;
+  if (body.contextId !== undefined) task.contextId = body.contextId;
   if (typeof body.orderInDay === "number") task.orderInDay = body.orderInDay;
   if (body.recurringRule !== undefined) task.recurringRule = body.recurringRule;
   await task.save();
-  res.json(task);
+  const withContext = await Task.findByPk(task.id, {
+    include: [{ model: Context, as: "Context", required: false }],
+  });
+  res.json(withContext ?? task);
 });
 
 tasksRouter.delete("/:id", async (req, res) => {

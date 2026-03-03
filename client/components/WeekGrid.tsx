@@ -23,7 +23,8 @@ export function WeekGrid({
     <section
       style={{
         display: "grid",
-        gridTemplateColumns: `repeat(7, minmax(0, 1fr))`,
+        gridTemplateColumns:
+          weekDays.length === 1 ? "1fr" : "repeat(7, minmax(0, 1fr))",
         gap: 12,
         marginBottom: 24,
         minHeight: 320,

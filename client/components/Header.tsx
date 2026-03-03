@@ -4,33 +4,46 @@ import type { Calendar } from "../types";
 type Theme = "default" | "blue" | "minimal";
 
 interface HeaderProps {
+  viewMode: "week" | "day";
   year: number;
   week: number;
+  focusedDateLabel: string | null;
   onPrevWeek: () => void;
   onNextWeek: () => void;
+  onPrevDay: () => void;
+  onNextDay: () => void;
   onToday: () => void;
+  onToggleFocus: () => void;
   theme: Theme;
   onThemeChange: (t: Theme) => void;
   calendars: Calendar[];
   activeCalendarId: number;
   onCalendarChange: (id: number) => void;
   onAddTask: () => void;
+  onOpenContexts: () => void;
 }
 
 export function Header({
+  viewMode,
   year,
   week,
+  focusedDateLabel,
   onPrevWeek,
   onNextWeek,
+  onPrevDay,
+  onNextDay,
   onToday,
+  onToggleFocus,
   theme,
   onThemeChange,
   calendars,
   activeCalendarId,
   onCalendarChange,
   onAddTask,
+  onOpenContexts,
 }: HeaderProps) {
   const weekLabel = `Неделя ${week}, ${year}`;
+  const navLabel = viewMode === "day" ? focusedDateLabel : weekLabel;
   return (
     <header
       style={{
@@ -48,29 +61,66 @@ export function Header({
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <button
-          type="button"
-          onClick={onPrevWeek}
-          aria-label="Предыдущая неделя"
-          style={btnStyle}
-        >
-          ‹
-        </button>
-        <button
-          type="button"
-          onClick={onNextWeek}
-          aria-label="Следующая неделя"
-          style={btnStyle}
-        >
-          ›
-        </button>
+        {viewMode === "week" ? (
+          <>
+            <button
+              type="button"
+              onClick={onPrevWeek}
+              aria-label="Предыдущая неделя"
+              style={btnStyle}
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              onClick={onNextWeek}
+              aria-label="Следующая неделя"
+              style={btnStyle}
+            >
+              ›
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={onPrevDay}
+              aria-label="Предыдущий день"
+              style={btnStyle}
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              onClick={onNextDay}
+              aria-label="Следующий день"
+              style={btnStyle}
+            >
+              ›
+            </button>
+          </>
+        )}
         <button type="button" onClick={onToday} style={{ ...btnStyle, fontWeight: 500 }}>
           Сегодня
         </button>
         <span style={{ fontFamily: "var(--font-serif)", fontSize: "1.1rem", marginLeft: 4 }}>
-          {weekLabel}
+          {navLabel}
         </span>
       </div>
+      <button
+        type="button"
+        onClick={onToggleFocus}
+        title={viewMode === "week" ? "Дневной вид (фокус)" : "Недельный вид"}
+        style={{
+          ...btnStyle,
+          padding: "6px 12px",
+          fontSize: 13,
+          background: viewMode === "day" ? "var(--accent-soft)" : "transparent",
+          color: viewMode === "day" ? "var(--accent)" : "var(--text)",
+        }}
+      >
+        Фокус
+      </button>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         {calendars.length > 1 && (
           <select
@@ -92,6 +142,9 @@ export function Header({
             ))}
           </select>
         )}
+        <button type="button" onClick={onOpenContexts} style={{ ...btnStyle, padding: "8px 14px" }}>
+          Контексты
+        </button>
         <button
           type="button"
           onClick={onAddTask}

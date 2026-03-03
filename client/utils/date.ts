@@ -39,3 +39,14 @@ export function getWeekDays(year: number, week: number): Date[] {
   }
   return days;
 }
+
+export function parseDateString(dateStr: string): Date {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y!, m! - 1, d!);
+}
+
+export function addDaysToDateString(dateStr: string, delta: number): string {
+  const d = parseDateString(dateStr);
+  d.setDate(d.getDate() + delta);
+  return toDateString(d);
+}

@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { Op } from "sequelize";
+import { Context } from "../models/Context.js";
 import { Task } from "../models/Task.js";
 
 export const weekRouter = Router();
@@ -32,6 +33,7 @@ weekRouter.get("/:year/:week", async (req, res) => {
       calendarId,
       date: { [Op.between]: [monday, sunday] },
     },
+    include: [{ model: Context, as: "Context", required: false }],
     order: [
       ["date", "ASC"],
       ["orderInDay", "ASC"],
@@ -45,6 +47,7 @@ weekRouter.get("/someday", async (req, res) => {
   const calendarId = req.query.calendarId != null ? Number(req.query.calendarId) : 1;
   const tasks = await Task.findAll({
     where: { calendarId, date: null },
+    include: [{ model: Context, as: "Context", required: false }],
     order: [["orderInDay", "ASC"], ["id", "ASC"]],
   });
   res.json(tasks);

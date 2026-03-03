@@ -1,34 +1,20 @@
 import { useState, useEffect } from "react";
-import type { Task } from "../types";
+import type { Context, Task } from "../types";
 
 interface TaskModalProps {
   task: Task | null;
+  contexts: Context[];
   defaultDate?: string;
   onSave: (data: {
     title: string;
     notes?: string | null;
     date?: string | null;
-    color?: string | null;
+    contextId?: number | null;
     recurringRule?: Task["recurringRule"];
   }) => void;
   onDelete?: () => void;
   onClose: () => void;
 }
-
-const COLORS = [
-  null,
-  "#e57373",
-  "#f06292",
-  "#ba68c8",
-  "#7986cb",
-  "#64b5f6",
-  "#4dd0e1",
-  "#81c784",
-  "#aed581",
-  "#dce775",
-  "#ffb74d",
-  "#ff8a65",
-];
 
 const RECURRING_OPTIONS: { value: Task["recurringRule"]; label: string }[] = [
   { value: "none", label: "Не повторять" },
@@ -38,11 +24,18 @@ const RECURRING_OPTIONS: { value: Task["recurringRule"]; label: string }[] = [
   { value: "yearly", label: "Каждый год" },
 ];
 
-export function TaskModal({ task, defaultDate, onSave, onDelete, onClose }: TaskModalProps) {
+export function TaskModal({
+  task,
+  contexts,
+  defaultDate,
+  onSave,
+  onDelete,
+  onClose,
+}: TaskModalProps) {
   const [title, setTitle] = useState(task?.title ?? "");
   const [notes, setNotes] = useState(task?.notes ?? "");
   const [date, setDate] = useState(task?.date ?? defaultDate ?? "");
-  const [color, setColor] = useState<string | null>(task?.color ?? null);
+  const [contextId, setContextId] = useState<number | null>(task?.contextId ?? null);
   const [recurringRule, setRecurringRule] = useState<Task["recurringRule"]>(
     task?.recurringRule ?? "none"
   );
@@ -52,13 +45,13 @@ export function TaskModal({ task, defaultDate, onSave, onDelete, onClose }: Task
       setTitle(task.title);
       setNotes(task.notes ?? "");
       setDate(task.date ?? "");
-      setColor(task.color);
+      setContextId(task.contextId);
       setRecurringRule(task.recurringRule);
     } else {
       setTitle("");
       setNotes("");
       setDate(defaultDate ?? "");
-      setColor(null);
+      setContextId(null);
       setRecurringRule("none");
     }
   }, [task, defaultDate]);
@@ -71,7 +64,7 @@ export function TaskModal({ task, defaultDate, onSave, onDelete, onClose }: Task
       title: t,
       notes: notes.trim() || null,
       date: date.trim() || null,
-      color,
+      contextId,
       recurringRule,
     });
   };
@@ -167,23 +160,40 @@ export function TaskModal({ task, defaultDate, onSave, onDelete, onClose }: Task
             />
           </div>
           <div style={{ marginBottom: 16 }}>
-            <span style={{ display: "block", marginBottom: 8, fontSize: 14 }}>Цвет</span>
+            <span style={{ display: "block", marginBottom: 8, fontSize: 14 }}>Контекст</span>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {COLORS.map((c) => (
+              <button
+                type="button"
+                onClick={() => setContextId(null)}
+                style={{
+                  padding: "6px 12px",
+                  borderRadius: 999,
+                  border: `2px solid ${contextId === null ? "var(--accent)" : "var(--border)"}`,
+                  background: contextId === null ? "var(--accent-soft)" : "var(--surface)",
+                  color: contextId === null ? "var(--accent)" : "var(--text)",
+                  fontSize: 13,
+                  cursor: "pointer",
+                }}
+              >
+                Без контекста
+              </button>
+              {contexts.map((ctx) => (
                 <button
-                  key={c ?? "none"}
+                  key={ctx.id}
                   type="button"
-                  onClick={() => setColor(c)}
-                  title={c ?? "Без цвета"}
+                  onClick={() => setContextId(ctx.id)}
                   style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: "50%",
-                    border: color === c ? "2px solid var(--text)" : "2px solid transparent",
-                    background: c ?? "var(--border)",
+                    padding: "6px 12px",
+                    borderRadius: 999,
+                    border: `2px solid ${ctx.color}`,
+                    background: contextId === ctx.id ? ctx.color : "var(--surface)",
+                    color: contextId === ctx.id ? "#fff" : "var(--text)",
+                    fontSize: 13,
                     cursor: "pointer",
                   }}
-                />
+                >
+                  {ctx.name}
+                </button>
               ))}
             </div>
           </div>

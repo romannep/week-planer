@@ -8,18 +8,27 @@ export interface Calendar {
   updatedAt: string;
 }
 
+export interface Context {
+  id: number;
+  name: string;
+  color: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Task {
   id: number;
   calendarId: number;
+  contextId: number | null;
   title: string;
   notes: string | null;
   date: string | null;
   completed: boolean;
-  color: string | null;
   orderInDay: number;
   recurringRule: RecurringRule;
   createdAt: string;
   updatedAt: string;
+  Context?: Context | null;
 }
 
 export interface WeekData {

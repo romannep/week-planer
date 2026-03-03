@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Task } from "../types";
+import { ContextChip } from "./ContextChip";
 
 interface TaskCardProps {
   task: Task;
@@ -7,12 +8,22 @@ interface TaskCardProps {
   onToggle: () => void;
   onDropHere?: (draggedTaskId: number) => void;
   dropTargetDate?: string | null;
+  showContextChip?: boolean;
 }
 
 const DRAG_TYPE = "application/x-weekplanner-task";
 
-export function TaskCard({ task, onClick, onToggle, onDropHere, dropTargetDate }: TaskCardProps) {
+export function TaskCard({
+  task,
+  onClick,
+  onToggle,
+  onDropHere,
+  dropTargetDate,
+  showContextChip = true,
+}: TaskCardProps) {
   const [dragOver, setDragOver] = useState(false);
+  const context = task.Context ?? null;
+  const borderColor = context?.color ?? "var(--border)";
 
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData(DRAG_TYPE, String(task.id));
@@ -56,8 +67,8 @@ export function TaskCard({ task, onClick, onToggle, onDropHere, dropTargetDate }
         padding: "10px 12px",
         borderRadius: "var(--radius)",
         background: dragOver ? "var(--accent-soft)" : "var(--surface)",
-        border: `1px solid ${task.color ?? "var(--border)"}`,
-        borderLeftWidth: task.color ? 4 : 1,
+        border: `1px solid ${borderColor}`,
+        borderLeftWidth: context ? 4 : 1,
         cursor: "grab",
         opacity: task.completed ? 0.75 : 1,
         transition: "background 0.15s",
@@ -92,6 +103,11 @@ export function TaskCard({ task, onClick, onToggle, onDropHere, dropTargetDate }
           >
             {task.title}
           </span>
+          {showContextChip && context && (
+            <div style={{ marginTop: 6 }}>
+              <ContextChip context={context} small />
+            </div>
+          )}
           {task.notes && (
             <div
               style={{

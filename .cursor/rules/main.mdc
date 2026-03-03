@@ -37,19 +37,22 @@ alwaysApply: true
 
 Модели (Sequelize):
 - Calendar: id, name, color, createdAt, updatedAt.
-- Task: id, calendarId, title, notes (nullable), date (DATEONLY, nullable — null = "Когда-нибудь"), completed, color (nullable), orderInDay, recurringRule (none|daily|weekly|monthly|yearly), createdAt, updatedAt.
+- Context: id, name, color, createdAt, updatedAt. Цвет — один из палитры (как в выборе цвета задачи ранее).
+- Task: id, calendarId, contextId (nullable), title, notes (nullable), date (DATEONLY, nullable — null = "Когда-нибудь"), completed, orderInDay, recurringRule (none|daily|weekly|monthly|yearly), createdAt, updatedAt. Цвет задачи убран; цвет берётся из контекста (Context). Связь Task.belongsTo(Context).
 
 API:
 - GET/POST /api/calendars, GET/PATCH/DELETE /api/calendars/:id.
-- GET /api/tasks?calendarId=&from=&to=&someday=true. POST /api/tasks. GET/PATCH/DELETE /api/tasks/:id.
-- GET /api/week/:year/:week?calendarId= — неделя (понедельник–воскресенье), возвращает { monday, sunday, tasks }. GET /api/week/someday?calendarId=. POST /api/week/roll — body { fromDate, toDate, calendarId } — перенос невыполненных задач с fromDate на toDate.
+- GET/POST /api/contexts, GET/PATCH/DELETE /api/contexts/:id. Контекст: name, color (обязательно).
+- GET /api/tasks?calendarId=&from=&to=&someday=true. POST /api/tasks (body: contextId, title, …). GET/PATCH/DELETE /api/tasks/:id. Ответы задач включают вложенный Context (include).
+- GET /api/week/:year/:week?calendarId= — неделя, возвращает { monday, sunday, tasks } (tasks с Context). GET /api/week/someday?calendarId=. POST /api/week/roll — body { fromDate, toDate, calendarId }.
 
 Фронт:
-- Недельный вид: 7 колонок (дни), каждая — список задач. Ниже блок "Когда-нибудь" для задач без даты.
-- Задачи: создание, редактирование (модальное окно), удаление, переключение выполненности (чекбокс). Цвет, заметки, дата, повтор (recurring).
-- Drag-and-drop: перенос задач между днями и в "Когда-нибудь". DataTransfer тип application/x-weekplanner-task, значение id задачи.
-- Темы: default (бумага), blue, minimal — переключатель в шапке, сохраняется в localStorage weekplanner-theme.
-- Навигация по неделям: предыдущая/следующая, кнопка "Сегодня". Нумерация недель ISO.
+- Недельный вид: 7 колонок (дни), каждая — список задач. Ниже блок "Когда-нибудь". Над колонками дней — строка фильтров по контекстам: кнопка "Все" и чипы контекстов (название в скруглённой рамке цвета контекста). При выборе контекста в колонках и в "Когда-нибудь" показываются только задачи этого контекста.
+- Контексты: кнопка "Контексты" в шапке открывает модалку — список контекстов (название + цветной чип), "Добавить контекст", "Изменить" у каждого. Добавление/редактирование: название и выбор цвета из той же палитры, что и раньше для задачи (client/constants/colors.ts CONTEXT_COLORS).
+- Задачи: в модалке задачи выбор контекста (чипы: "Без контекста" + все контексты), не выбор цвета. В карточке задачи: контекст отображается чипом (название в скруглённой рамке цвета контекста), рамка/подсветка карточки по цвету контекста.
+- Drag-and-drop: перенос задач между днями и в "Когда-нибудь". DataTransfer application/x-weekplanner-task, значение id задачи.
+- Темы: default, blue, minimal — переключатель в шапке, localStorage weekplanner-theme.
+- Навигация по неделям: предыдущая/следующая, "Сегодня". Нумерация недель ISO.
 - Один календарь по умолчанию; при нескольких — выбор в шапке.
 
 Зависимости: express, cors, sequelize, sqlite3; react, react-dom; vite, @vitejs/plugin-react, tsx, typescript, concurrently; типы @types/express, @types/cors, @types/node, @types/react, @types/react-dom.

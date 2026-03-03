@@ -1,4 +1,4 @@
-import type { Calendar, Task, WeekData } from "./types";
+import type { Calendar, Context, Task, WeekData } from "./types";
 
 const base = "/api";
 
@@ -35,6 +35,14 @@ async function del(path: string): Promise<void> {
 }
 
 export const api = {
+  contexts: {
+    list: () => get<Context[]>("/contexts"),
+    create: (data: { name: string; color: string }) => post<Context>("/contexts", data),
+    get: (id: number) => get<Context>(`/contexts/${id}`),
+    update: (id: number, data: Partial<{ name: string; color: string }>) =>
+      patch<Context>(`/contexts/${id}`, data),
+    delete: (id: number) => del(`/contexts/${id}`),
+  },
   calendars: {
     list: () => get<Calendar[]>("/calendars"),
     create: (data: { name: string; color?: string }) => post<Calendar>("/calendars", data),
@@ -55,10 +63,10 @@ export const api = {
     },
     create: (data: {
       calendarId?: number;
+      contextId?: number | null;
       title: string;
       notes?: string;
       date?: string | null;
-      color?: string | null;
       recurringRule?: Task["recurringRule"];
     }) => post<Task>("/tasks", data),
     get: (id: number) => get<Task>(`/tasks/${id}`),
@@ -69,7 +77,7 @@ export const api = {
         notes: string | null;
         date: string | null;
         completed: boolean;
-        color: string | null;
+        contextId: number | null;
         orderInDay: number;
         recurringRule: Task["recurringRule"];
       }>
