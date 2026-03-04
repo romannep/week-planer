@@ -15,7 +15,14 @@ import { authRouter } from "./routes/auth.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
-app.use(cors({ origin: true, credentials: true }));
+app.use(
+  cors({
+    origin: true, // отражает заголовок Origin запроса — любой домен
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "Accept"],
+  })
+);
 app.use(cookieParser());
 app.use(express.json());
 
