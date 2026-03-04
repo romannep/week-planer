@@ -1,4 +1,4 @@
-import "dotenv/config";
+import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -12,6 +12,7 @@ import { tasksRouter } from "./routes/tasks.js";
 import { weekRouter } from "./routes/week.js";
 import { authRouter } from "./routes/auth.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.join(__dirname, "..", ".env") });
 const app = express();
 app.use(cors({
     origin: true, // отражает заголовок Origin запроса — любой домен
