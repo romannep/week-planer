@@ -1,0 +1,21 @@
+{
+  "name": "weekplanner",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server/index.js",
+    "run": "concurrently \"npm run start\" \"http-server client-dist -p 8080 -c-1\""
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "bcrypt": "^5.1.1",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "http-server": "^14.1.1",
+    "jsonwebtoken": "^9.0.2",
+    "sequelize": "^6.37.0",
+    "sqlite3": "^5.1.7",
+    "concurrently": "^9.0.1"
+  }
+}

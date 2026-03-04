@@ -1,17 +1,17 @@
 import { Router } from "express";
 import { Calendar } from "../models/Calendar.js";
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth, type AuthRequest } from "../middleware/auth.js";
 
 export const calendarsRouter = Router();
 calendarsRouter.use(requireAuth);
 
-function getUserId(req: { userId?: number }): number {
+function getUserId(req: AuthRequest): number {
   const id = req.userId;
   if (id == null) throw new Error("unauthorized");
   return id;
 }
 
-calendarsRouter.get("/", async (req, res) => {
+calendarsRouter.get("/", async (req: AuthRequest, res) => {
   const userId = getUserId(req);
   let list = await Calendar.findAll({
     where: { userId },
@@ -28,7 +28,7 @@ calendarsRouter.get("/", async (req, res) => {
   res.json(list);
 });
 
-calendarsRouter.post("/", async (req, res) => {
+calendarsRouter.post("/", async (req: AuthRequest, res) => {
   const userId = getUserId(req);
   const { name, color } = req.body as { name?: string; color?: string };
   if (!name || typeof name !== "string") {
@@ -43,7 +43,7 @@ calendarsRouter.post("/", async (req, res) => {
   res.status(201).json(calendar);
 });
 
-calendarsRouter.get("/:id", async (req, res) => {
+calendarsRouter.get("/:id", async (req: AuthRequest, res) => {
   const userId = getUserId(req);
   const id = Number(req.params.id);
   if (Number.isNaN(id)) {
@@ -58,7 +58,7 @@ calendarsRouter.get("/:id", async (req, res) => {
   res.json(calendar);
 });
 
-calendarsRouter.patch("/:id", async (req, res) => {
+calendarsRouter.patch("/:id", async (req: AuthRequest, res) => {
   const userId = getUserId(req);
   const id = Number(req.params.id);
   if (Number.isNaN(id)) {
@@ -77,7 +77,7 @@ calendarsRouter.patch("/:id", async (req, res) => {
   res.json(calendar);
 });
 
-calendarsRouter.delete("/:id", async (req, res) => {
+calendarsRouter.delete("/:id", async (req: AuthRequest, res) => {
   const userId = getUserId(req);
   const id = Number(req.params.id);
   if (Number.isNaN(id)) {

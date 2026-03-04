@@ -4,12 +4,12 @@ import { Calendar } from "../models/Calendar.js";
 import { Context } from "../models/Context.js";
 import { Task } from "../models/Task.js";
 import type { RecurringRule } from "../models/Task.js";
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth, type AuthRequest } from "../middleware/auth.js";
 
 export const tasksRouter = Router();
 tasksRouter.use(requireAuth);
 
-function getUserId(req: { userId?: number }): number {
+function getUserId(req: AuthRequest): number {
   const id = req.userId;
   if (id == null) throw new Error("unauthorized");
   return id;
@@ -20,7 +20,7 @@ async function getUserCalendarIds(userId: number): Promise<number[]> {
   return list.map((c) => c.id);
 }
 
-tasksRouter.get("/", async (req, res) => {
+tasksRouter.get("/", async (req: AuthRequest, res) => {
   const userId = getUserId(req);
   const calendarIds = await getUserCalendarIds(userId);
   if (calendarIds.length === 0) {
@@ -54,7 +54,7 @@ tasksRouter.get("/", async (req, res) => {
   res.json(list);
 });
 
-tasksRouter.post("/", async (req, res) => {
+tasksRouter.post("/", async (req: AuthRequest, res) => {
   const userId = getUserId(req);
   const calendarIds = await getUserCalendarIds(userId);
   if (calendarIds.length === 0) {
@@ -62,8 +62,8 @@ tasksRouter.post("/", async (req, res) => {
     return;
   }
   const body = req.body as {
-    calendarId?: number;
-    contextId?: number | null;
+    calendarId?: number | string;
+    contextId?: number | string | null;
     title?: string;
     notes?: string;
     date?: string | null;
@@ -73,10 +73,13 @@ tasksRouter.post("/", async (req, res) => {
     res.status(400).json({ error: "title required" });
     return;
   }
-  const calendarId =
-    body.calendarId != null && !Number.isNaN(body.calendarId) && calendarIds.includes(body.calendarId)
-      ? body.calendarId
+  const calendarIdNum =
+    body.calendarId != null &&
+    !Number.isNaN(Number(body.calendarId)) &&
+    calendarIds.includes(Number(body.calendarId))
+      ? Number(body.calendarId)
       : calendarIds[0]!;
+  const calendarId = calendarIdNum;
   let contextId: number | null = null;
   if (body.contextId != null && body.contextId !== "" && !Number.isNaN(Number(body.contextId))) {
     const cid = Number(body.contextId);
@@ -101,7 +104,7 @@ tasksRouter.post("/", async (req, res) => {
   res.status(201).json(withContext ?? task);
 });
 
-tasksRouter.get("/:id", async (req, res) => {
+tasksRouter.get("/:id", async (req: AuthRequest, res) => {
   const userId = getUserId(req);
   const calendarIds = await getUserCalendarIds(userId);
   const id = Number(req.params.id);
@@ -120,7 +123,7 @@ tasksRouter.get("/:id", async (req, res) => {
   res.json(task);
 });
 
-tasksRouter.patch("/:id", async (req, res) => {
+tasksRouter.patch("/:id", async (req: AuthRequest, res) => {
   const userId = getUserId(req);
   const calendarIds = await getUserCalendarIds(userId);
   const id = Number(req.params.id);
@@ -165,7 +168,7 @@ tasksRouter.patch("/:id", async (req, res) => {
   res.json(withContext ?? task);
 });
 
-tasksRouter.delete("/:id", async (req, res) => {
+tasksRouter.delete("/:id", async (req: AuthRequest, res) => {
   const userId = getUserId(req);
   const calendarIds = await getUserCalendarIds(userId);
   const id = Number(req.params.id);

@@ -8,11 +8,13 @@ export interface JwtPayload {
   userId: number;
 }
 
+export type AuthErrorCode = "NO_TOKEN" | "INVALID_TOKEN";
+
+export type AuthRequest = Request & { userId?: number; authError?: AuthErrorCode };
+
 export function signToken(userId: number): string {
   return jwt.sign({ userId } as JwtPayload, JWT_SECRET, { expiresIn: "7d" });
 }
-
-export type AuthErrorCode = "NO_TOKEN" | "INVALID_TOKEN";
 
 export function parseAuth(req: Request, res: Response, next: NextFunction): void {
   const token =
@@ -20,7 +22,7 @@ export function parseAuth(req: Request, res: Response, next: NextFunction): void
     (req.headers.authorization?.startsWith("Bearer ")
       ? req.headers.authorization.slice(7)
       : undefined);
-  const ext = req as Request & { userId?: number; authError?: AuthErrorCode };
+  const ext = req as AuthRequest;
   if (!token) {
     ext.authError = "NO_TOKEN";
     next();
@@ -36,7 +38,7 @@ export function parseAuth(req: Request, res: Response, next: NextFunction): void
 }
 
 export function requireAuth(req: Request, res: Response, next: NextFunction): void {
-  const ext = req as Request & { userId?: number; authError?: AuthErrorCode };
+  const ext = req as AuthRequest;
   if (ext.userId != null) {
     next();
     return;

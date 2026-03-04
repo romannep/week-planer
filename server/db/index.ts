@@ -29,14 +29,21 @@ Task.belongsTo(Context, { foreignKey: "contextId" });
 export async function syncDb(): Promise<void> {
   await sequelize.sync({ alter: false });
   const { Op } = await import("sequelize");
-  const orphanCalendars = await Calendar.count({ where: { userId: { [Op.is]: null } } });
-  if (orphanCalendars > 0) {
+  const whereNull = { userId: { [Op.is]: null } } as const;
+  const orphanCount = await Calendar.count({ where: whereNull as never });
+  if (orphanCount > 0) {
     const hash = await bcrypt.hash("changeme", 10);
     const defaultUser = await User.create({
       login: "default",
       passwordHash: hash,
     });
-    await Calendar.update({ userId: defaultUser.id }, { where: { userId: { [Op.is]: null } } });
-    await Context.update({ userId: defaultUser.id }, { where: { userId: { [Op.is]: null } } });
+    await Calendar.update(
+      { userId: defaultUser.id },
+      { where: whereNull as never }
+    );
+    await Context.update(
+      { userId: defaultUser.id },
+      { where: whereNull as never }
+    );
   }
 }

@@ -3,12 +3,12 @@ import { Op } from "sequelize";
 import { Calendar } from "../models/Calendar.js";
 import { Context } from "../models/Context.js";
 import { Task } from "../models/Task.js";
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth, type AuthRequest } from "../middleware/auth.js";
 
 export const weekRouter = Router();
 weekRouter.use(requireAuth);
 
-function getUserId(req: { userId?: number }): number {
+function getUserId(req: AuthRequest): number {
   const id = req.userId;
   if (id == null) throw new Error("unauthorized");
   return id;
@@ -33,7 +33,7 @@ function getWeekBounds(year: number, week: number): { monday: string; sunday: st
   return { monday: fmt(monday), sunday: fmt(sunday) };
 }
 
-weekRouter.get("/:year/:week", async (req, res) => {
+weekRouter.get("/:year/:week", async (req: AuthRequest, res) => {
   const userId = getUserId(req);
   const calendarIds = await getUserCalendarIds(userId);
   if (calendarIds.length === 0) {
@@ -66,7 +66,7 @@ weekRouter.get("/:year/:week", async (req, res) => {
   res.json({ monday, sunday, tasks });
 });
 
-weekRouter.get("/someday", async (req, res) => {
+weekRouter.get("/someday", async (req: AuthRequest, res) => {
   const userId = getUserId(req);
   const calendarIds = await getUserCalendarIds(userId);
   if (calendarIds.length === 0) {
@@ -85,7 +85,7 @@ weekRouter.get("/someday", async (req, res) => {
   res.json(tasks);
 });
 
-weekRouter.post("/roll", async (req, res) => {
+weekRouter.post("/roll", async (req: AuthRequest, res) => {
   const userId = getUserId(req);
   const calendarIds = await getUserCalendarIds(userId);
   if (calendarIds.length === 0) {

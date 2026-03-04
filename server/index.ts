@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -31,11 +32,12 @@ app.get("*", (_req, res) => {
 });
 
 const PORT = Number(process.env.PORT) || 3000;
+const HOST = process.env.HOST ?? "0.0.0.0";
 
 syncDb()
   .then(() => {
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`Server at http://localhost:${PORT}`);
+    app.listen(PORT, HOST, () => {
+      console.log(`Server at http://${HOST}:${PORT}`);
     });
   })
   .catch((err) => {

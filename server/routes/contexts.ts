@@ -1,17 +1,17 @@
 import { Router } from "express";
 import { Context } from "../models/Context.js";
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth, type AuthRequest } from "../middleware/auth.js";
 
 export const contextsRouter = Router();
 contextsRouter.use(requireAuth);
 
-function getUserId(req: { userId?: number }): number {
+function getUserId(req: AuthRequest): number {
   const id = req.userId;
   if (id == null) throw new Error("unauthorized");
   return id;
 }
 
-contextsRouter.get("/", async (req, res) => {
+contextsRouter.get("/", async (req: AuthRequest, res) => {
   const userId = getUserId(req);
   const list = await Context.findAll({
     where: { userId },
@@ -20,7 +20,7 @@ contextsRouter.get("/", async (req, res) => {
   res.json(list);
 });
 
-contextsRouter.post("/", async (req, res) => {
+contextsRouter.post("/", async (req: AuthRequest, res) => {
   const userId = getUserId(req);
   const { name, color } = req.body as { name?: string; color?: string };
   if (!name || typeof name !== "string") {
@@ -39,7 +39,7 @@ contextsRouter.post("/", async (req, res) => {
   res.status(201).json(context);
 });
 
-contextsRouter.get("/:id", async (req, res) => {
+contextsRouter.get("/:id", async (req: AuthRequest, res) => {
   const userId = getUserId(req);
   const id = Number(req.params.id);
   if (Number.isNaN(id)) {
@@ -54,7 +54,7 @@ contextsRouter.get("/:id", async (req, res) => {
   res.json(context);
 });
 
-contextsRouter.patch("/:id", async (req, res) => {
+contextsRouter.patch("/:id", async (req: AuthRequest, res) => {
   const userId = getUserId(req);
   const id = Number(req.params.id);
   if (Number.isNaN(id)) {
@@ -73,7 +73,7 @@ contextsRouter.patch("/:id", async (req, res) => {
   res.json(context);
 });
 
-contextsRouter.delete("/:id", async (req, res) => {
+contextsRouter.delete("/:id", async (req: AuthRequest, res) => {
   const userId = getUserId(req);
   const id = Number(req.params.id);
   if (Number.isNaN(id)) {
