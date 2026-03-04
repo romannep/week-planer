@@ -31,7 +31,7 @@ alwaysApply: true
 Приложение для планирования задач на неделю по аналогии с Tweek. Многопользовательское: вход по логину и паролю, у каждого пользователя свой список календарей, контекстов и задач.
 
 Структура:
-- server/ — backend: Node.js, Express, Sequelize, SQLite. Точка входа server/index.ts. .env загружается из path.join(__dirname, '..', '.env') (для билда — build/.env). БД SQLite в server/data/weekplanner.sqlite. CORS: origin true (любой домен), credentials true, методы GET/POST/PUT/PATCH/DELETE/OPTIONS, заголовки Content-Type, Authorization, Accept. Сессии: JWT в cookie "session" (httpOnly), парсится middleware parseAuth; маршруты кроме /api/auth защищены requireAuth.
+- server/ — backend: Node.js, Express, Sequelize, SQLite. Точка входа server/index.ts. .env загружается из path.join(__dirname, '..', '.env') (для билда — build/.env). Путь к БД: process.env.DATABASE_PATH (относительно server или абсолютный), по умолчанию server/data/weekplanner.sqlite; dotenv подгружается в server/db/config.ts. CORS: origin true (любой домен), credentials true, методы GET/POST/PUT/PATCH/DELETE/OPTIONS, заголовки Content-Type, Authorization, Accept. Сессии: JWT в cookie "session" (httpOnly), парсится middleware parseAuth; маршруты кроме /api/auth защищены requireAuth.
 - client/ — frontend: React, TypeScript, Vite. Точка входа client/main.tsx. Сборка в client-dist/. Запросы с credentials: "include". При 401 вызывается onAuthFailure и показывается экран входа.
 - index.html, vite.config.ts в корне. Прокси /api на localhost:3000 в dev.
 

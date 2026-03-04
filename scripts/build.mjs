@@ -50,16 +50,15 @@ cpSync(serverDist, path.join(buildDir, "server"), { recursive: true });
 
 mkdirSync(path.join(buildDir, "server", "data"), { recursive: true });
 
+// build/.env создаётся на основе ./.env (или ./.env.example, если .env нет)
 const envPath = path.join(root, ".env");
+const envExamplePath = path.join(root, ".env.example");
 if (existsSync(envPath)) {
-  console.log("Copying .env to build/...");
+  console.log("Copying .env to build/.env...");
   cpSync(envPath, path.join(buildDir, ".env"));
-} else {
-  const envExample = path.join(root, ".env.example");
-  if (existsSync(envExample)) {
-    console.log("Copying .env.example to build/.env...");
-    cpSync(envExample, path.join(buildDir, ".env"));
-  }
+} else if (existsSync(envExamplePath)) {
+  console.log("Copying .env.example to build/.env...");
+  cpSync(envExamplePath, path.join(buildDir, ".env"));
 }
 
 console.log("Writing build/package.json...");
