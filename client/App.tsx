@@ -8,7 +8,6 @@ import {
   parseDateString,
   toDateString,
 } from "./utils/date";
-import { ContextFilters } from "./components/ContextFilters";
 import { Header } from "./components/Header";
 import { WeekGrid } from "./components/WeekGrid";
 import { SomedaySection } from "./components/SomedaySection";
@@ -32,10 +31,13 @@ export function App({ user, onLogout }: AppProps) {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [week, setWeek] = useState(getWeekNumber(now));
-  const [viewMode, setViewMode] = useState<"week" | "day">("week");
+  const [viewMode, setViewMode] = useState<"week" | "day">(() =>
+    typeof window !== "undefined" && window.innerWidth < 900 ? "day" : "week"
+  );
   const [focusedDate, setFocusedDate] = useState<string>(() => toDateString(now));
   const [weekTasks, setWeekTasks] = useState<Task[]>([]);
   const [somedayTasks, setSomedayTasks] = useState<Task[]>([]);
+  const [dayTasks, setDayTasks] = useState<Task[]>([]);
   const [contexts, setContexts] = useState<Context[]>([]);
   const [selectedContextId, setSelectedContextId] = useState<number | null>(null);
   const [contextsModalOpen, setContextsModalOpen] = useState(false);
@@ -78,6 +80,22 @@ export function App({ user, onLogout }: AppProps) {
     }
   }, [year, week, activeCalendarId]);
 
+  const loadDay = useCallback(async () => {
+    setLoading(true);
+    try {
+      const tasks = await api.tasks.list({
+        calendarId: activeCalendarId,
+        from: focusedDate,
+        to: focusedDate,
+      });
+      setDayTasks(tasks);
+    } catch {
+      setDayTasks([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [activeCalendarId, focusedDate]);
+
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme === "default" ? "" : theme);
   }, [theme]);
@@ -100,12 +118,23 @@ export function App({ user, onLogout }: AppProps) {
   }, [loadContexts]);
 
   useEffect(() => {
-    loadWeek();
-  }, [loadWeek]);
+    if (viewMode === "week") {
+      loadWeek();
+    }
+  }, [viewMode, loadWeek]);
+
+  useEffect(() => {
+    if (viewMode === "day") {
+      loadDay();
+    }
+  }, [viewMode, loadDay]);
 
   const refresh = useCallback(() => {
     loadWeek();
-  }, [loadWeek]);
+    if (viewMode === "day") {
+      loadDay();
+    }
+  }, [loadWeek, viewMode, loadDay]);
 
   const weekDays = getWeekDays(year, week);
   const tasksByDate = new Map<string, Task[]>();
@@ -126,11 +155,12 @@ export function App({ user, onLogout }: AppProps) {
   }
 
   const displayDays = viewMode === "day" ? [parseDateString(focusedDate)] : weekDays;
+  const filteredDayTasks = filterByContext(dayTasks);
   const tasksByDateForView =
     viewMode === "day"
       ? (() => {
           const m = new Map<string, Task[]>();
-          m.set(focusedDate, tasksByDate.get(focusedDate) ?? []);
+          m.set(focusedDate, filteredDayTasks);
           return m;
         })()
       : tasksByDate;
@@ -188,7 +218,9 @@ export function App({ user, onLogout }: AppProps) {
           await api.tasks.create({
             ...data,
             calendarId: activeCalendarId,
-            date: data.date ?? creatingForDate ?? null,
+            date:
+              data.date ??
+              (creatingForDate === "someday" ? null : creatingForDate ?? null),
           });
         }
         setEditingTask(null);
@@ -226,21 +258,21 @@ export function App({ user, onLogout }: AppProps) {
     setFocusedDate(toDateString(n));
   };
 
-  const goPrevDay = () => {
+  const goPrevDay = useCallback(() => {
     const next = addDaysToDateString(focusedDate, -1);
     setFocusedDate(next);
     const d = parseDateString(next);
     setYear(d.getFullYear());
     setWeek(getWeekNumber(d));
-  };
+  }, [focusedDate]);
 
-  const goNextDay = () => {
+  const goNextDay = useCallback(() => {
     const next = addDaysToDateString(focusedDate, 1);
     setFocusedDate(next);
     const d = parseDateString(next);
     setYear(d.getFullYear());
     setWeek(getWeekNumber(d));
-  };
+  }, [focusedDate]);
 
   const toggleFocus = () => {
     if (viewMode === "week") {
@@ -281,6 +313,9 @@ export function App({ user, onLogout }: AppProps) {
         calendars={calendars}
         activeCalendarId={activeCalendarId}
         onCalendarChange={setActiveCalendarId}
+        contexts={contexts}
+        selectedContextId={selectedContextId}
+        onContextSelect={setSelectedContextId}
         onOpenContexts={() => setContextsModalOpen(true)}
       />
       <main style={{ maxWidth: 1400, margin: "0 auto", padding: "0 16px 24px" }}>
@@ -288,11 +323,6 @@ export function App({ user, onLogout }: AppProps) {
           <p style={{ color: "var(--text-muted)", padding: 24 }}>Загрузка…</p>
         ) : (
           <>
-            <ContextFilters
-              contexts={contexts}
-              selectedContextId={selectedContextId}
-              onSelect={setSelectedContextId}
-            />
             <WeekGrid
               weekDays={displayDays}
               tasksByDate={tasksByDateForView}
@@ -306,7 +336,7 @@ export function App({ user, onLogout }: AppProps) {
               onTaskClick={setEditingTask}
               onTaskToggle={handleTaskToggle}
               onTaskMove={handleTaskMove}
-              onAddTask={() => setCreatingForDate(null)}
+              onAddTask={() => setCreatingForDate("someday")}
             />
           </>
         )}
@@ -315,7 +345,11 @@ export function App({ user, onLogout }: AppProps) {
         <TaskModal
           task={editingTask}
           contexts={contexts}
-          defaultDate={creatingForDate ?? undefined}
+          defaultDate={
+            creatingForDate !== null && creatingForDate !== "someday"
+              ? creatingForDate
+              : undefined
+          }
           onSave={handleTaskSave}
           onDelete={editingTask ? () => handleTaskDelete(editingTask.id) : undefined}
           onClose={() => {

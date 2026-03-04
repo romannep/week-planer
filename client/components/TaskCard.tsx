@@ -64,7 +64,7 @@ export function TaskCard({
         onClick();
       }}
       style={{
-        padding: "10px 12px",
+        padding: "8px 12px",
         borderRadius: "var(--radius)",
         background: dragOver ? "var(--accent-soft)" : "var(--surface)",
         border: `1px solid ${borderColor}`,
@@ -74,7 +74,7 @@ export function TaskCard({
         transition: "background 0.15s",
       }}
     >
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
         <button
           type="button"
           data-action="toggle"
@@ -85,35 +85,40 @@ export function TaskCard({
           }}
           style={{
             flexShrink: 0,
-            width: 20,
-            height: 20,
+            width: 18,
+            height: 18,
             borderRadius: "50%",
             border: "2px solid var(--border)",
             background: task.completed ? "var(--accent)" : "transparent",
-            marginTop: 2,
+            marginTop: 1,
             cursor: "pointer",
           }}
         />
         <div style={{ flex: 1, minWidth: 0 }}>
           <span
             style={{
+              display: "block",
+              fontSize: 12,
               textDecoration: task.completed ? "line-through" : "none",
               color: task.completed ? "var(--completed)" : "var(--text)",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
             }}
           >
             {task.title}
           </span>
           {showContextChip && context && (
-            <div style={{ marginTop: 6 }}>
+            <div style={{ marginTop: 4 }}>
               <ContextChip context={context} small />
             </div>
           )}
           {task.notes && (
             <div
               style={{
-                fontSize: 12,
+                fontSize: 11,
                 color: "var(--text-muted)",
-                marginTop: 4,
+                marginTop: 2,
                 whiteSpace: "nowrap",
                 overflow: "hidden",
                 textOverflow: "ellipsis",

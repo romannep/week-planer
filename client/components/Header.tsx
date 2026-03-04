@@ -1,4 +1,5 @@
-import type { Calendar, User } from "../types";
+import type { Calendar, Context, User } from "../types";
+import { ContextFilters } from "./ContextFilters";
 
 type Theme = "default" | "blue" | "minimal";
 
@@ -20,6 +21,9 @@ interface HeaderProps {
   calendars: Calendar[];
   activeCalendarId: number;
   onCalendarChange: (id: number) => void;
+  contexts: Context[];
+  selectedContextId: number | null;
+  onContextSelect: (id: number | null) => void;
   onOpenContexts: () => void;
 }
 
@@ -41,6 +45,9 @@ export function Header({
   calendars,
   activeCalendarId,
   onCalendarChange,
+  contexts,
+  selectedContextId,
+  onContextSelect,
   onOpenContexts,
 }: HeaderProps) {
   const weekLabel = `Неделя ${week}, ${year}`;
@@ -115,14 +122,22 @@ export function Header({
         title={viewMode === "week" ? "Дневной вид (фокус)" : "Недельный вид"}
         style={{
           ...btnStyle,
-          padding: "6px 12px",
-          fontSize: 13,
+          padding: "8px 14px",
+          fontSize: 14,
           background: viewMode === "day" ? "var(--accent-soft)" : "transparent",
           color: viewMode === "day" ? "var(--accent)" : "var(--text)",
         }}
       >
         Фокус
       </button>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginRight: 4 }}>
+        <ContextFilters
+          contexts={contexts}
+          selectedContextId={selectedContextId}
+          onSelect={onContextSelect}
+          inline
+        />
+      </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         {calendars.length > 1 && (
           <select
@@ -144,8 +159,17 @@ export function Header({
             ))}
           </select>
         )}
-        <button type="button" onClick={onOpenContexts} style={{ ...btnStyle, padding: "8px 14px" }}>
-          Контексты
+        <button
+          type="button"
+          onClick={onOpenContexts}
+          title="Контексты"
+          aria-label="Контексты"
+          style={{ ...btnStyle, padding: "8px 14px", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+            <line x1="7" y1="7" x2="7.01" y2="7" />
+          </svg>
         </button>
       </div>
       <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>

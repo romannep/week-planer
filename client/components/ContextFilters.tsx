@@ -4,12 +4,15 @@ interface ContextFiltersProps {
   contexts: Context[];
   selectedContextId: number | null;
   onSelect: (contextId: number | null) => void;
+  /** В шапке без нижнего отступа */
+  inline?: boolean;
 }
 
 export function ContextFilters({
   contexts,
   selectedContextId,
   onSelect,
+  inline,
 }: ContextFiltersProps) {
   return (
     <div
@@ -18,7 +21,7 @@ export function ContextFilters({
         flexWrap: "wrap",
         alignItems: "center",
         gap: 8,
-        marginBottom: 16,
+        marginBottom: inline ? 0 : 16,
       }}
     >
       <button
