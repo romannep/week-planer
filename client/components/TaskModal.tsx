@@ -197,7 +197,7 @@ export function TaskModal({
               ))}
             </div>
           </div>
-          <div style={{ marginBottom: 24 }}>
+          <div style={{ marginBottom: 24, display: "none" }}>
             <label htmlFor="task-recurring" style={{ display: "block", marginBottom: 6, fontSize: 14 }}>
               Повтор
             </label>

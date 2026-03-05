@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import type { Task } from "../types";
+import { useDragDrop } from "../contexts/DragDropContext";
 import { ContextChip } from "./ContextChip";
 
 interface TaskCardProps {
@@ -21,20 +22,38 @@ export function TaskCard({
   dropTargetDate,
   showContextChip = true,
 }: TaskCardProps) {
+  const { draggedIdRef, pendingDropRef } = useDragDrop();
   const [dragOver, setDragOver] = useState(false);
   const context = task.Context ?? null;
   const borderColor = context?.color ?? "var(--border)";
 
+  const finishDrag = useCallback(() => {
+    const id = draggedIdRef.current;
+    const drop = pendingDropRef.current;
+    draggedIdRef.current = null;
+    pendingDropRef.current = null;
+    if (id != null && drop) drop(id);
+  }, [draggedIdRef, pendingDropRef]);
+
   const handleDragStart = (e: React.DragEvent) => {
+    draggedIdRef.current = task.id;
     e.dataTransfer.setData(DRAG_TYPE, String(task.id));
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", task.title);
+    // На Android Chrome drop и dragend при отпускании пальца не срабатывают — выполняем перенос по touchend
+    document.addEventListener("touchend", finishDrag, { once: true, capture: true });
+  };
+
+  const handleDragEnd = () => {
+    document.removeEventListener("touchend", finishDrag, true);
+    finishDrag();
   };
 
   const handleDragOver = (e: React.DragEvent) => {
     if (!onDropHere) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
+    pendingDropRef.current = (id) => onDropHere?.(id);
     setDragOver(true);
   };
 
@@ -48,12 +67,14 @@ export function TaskCard({
       const num = parseInt(id, 10);
       if (!Number.isNaN(num)) onDropHere(num);
     }
+    pendingDropRef.current = null;
   };
 
   return (
     <div
       draggable
       onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -111,20 +132,6 @@ export function TaskCard({
           {showContextChip && context && (
             <div style={{ marginTop: 4 }}>
               <ContextChip context={context} small />
-            </div>
-          )}
-          {task.notes && (
-            <div
-              style={{
-                fontSize: 11,
-                color: "var(--text-muted)",
-                marginTop: 2,
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
-              {task.notes}
             </div>
           )}
         </div>

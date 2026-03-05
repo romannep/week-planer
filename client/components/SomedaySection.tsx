@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Task } from "../types";
+import { useDragDrop } from "../contexts/DragDropContext";
 import { TaskCard } from "./TaskCard";
 
 interface SomedaySectionProps {
@@ -17,11 +18,16 @@ export function SomedaySection({
   onTaskMove,
   onAddTask,
 }: SomedaySectionProps) {
+  const { pendingDropRef } = useDragDrop();
   const [dragOver, setDragOver] = useState(false);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
+    pendingDropRef.current = (id) => {
+      const num = parseInt(String(id), 10);
+      if (!Number.isNaN(num)) onTaskMove(num, null, tasks.length);
+    };
     setDragOver(true);
   };
 
@@ -35,6 +41,7 @@ export function SomedaySection({
       const num = parseInt(id, 10);
       if (!Number.isNaN(num)) onTaskMove(num, null, tasks.length);
     }
+    pendingDropRef.current = null;
   };
 
   return (
@@ -75,6 +82,7 @@ export function SomedaySection({
               if (draggedId !== task.id) onTaskMove(draggedId, null, index);
             }}
             dropTargetDate={null}
+            showContextChip={false}
           />
         ))}
         <button

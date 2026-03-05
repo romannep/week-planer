@@ -1,4 +1,5 @@
 import type { Task } from "../types";
+import { useDragDrop } from "../contexts/DragDropContext";
 import { toDateString } from "../utils/date";
 import { TaskCard } from "./TaskCard";
 
@@ -23,6 +24,7 @@ export function DayColumn({
   onTaskMove,
   onAddTask,
 }: DayColumnProps) {
+  const { pendingDropRef } = useDragDrop();
   const dateStr = toDateString(date);
   const isToday = toDateString(new Date()) === dateStr;
 
@@ -33,11 +35,16 @@ export function DayColumn({
       const num = parseInt(id, 10);
       if (!Number.isNaN(num)) onTaskMove(num, tasks.length);
     }
+    pendingDropRef.current = null;
   };
 
   const handleColumnDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
+    pendingDropRef.current = (id) => {
+      const num = parseInt(String(id), 10);
+      if (!Number.isNaN(num)) onTaskMove(num, tasks.length);
+    };
   };
 
   return (

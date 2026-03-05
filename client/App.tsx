@@ -8,6 +8,7 @@ import {
   parseDateString,
   toDateString,
 } from "./utils/date";
+import { DragDropProvider } from "./contexts/DragDropContext";
 import { Header } from "./components/Header";
 import { WeekGrid } from "./components/WeekGrid";
 import { SomedaySection } from "./components/SomedaySection";
@@ -294,7 +295,7 @@ export function App({ user, onLogout }: AppProps) {
       : null;
 
   return (
-    <>
+    <DragDropProvider>
       <Header
         user={user}
         onLogout={onLogout}
@@ -367,6 +368,6 @@ export function App({ user, onLogout }: AppProps) {
           }}
         />
       )}
-    </>
+    </DragDropProvider>
   );
 }
